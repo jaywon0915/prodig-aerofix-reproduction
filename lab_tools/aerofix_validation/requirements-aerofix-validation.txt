@@ -1,0 +1,68 @@
+# Pinned dependency set for aeroFix checkpoint validation (evaluate_aerofix()).
+# Captured from the actual conda env used for a working validation run
+# (/path/to/anchor_prodig_env, Python 3.11, torch cu130, RTX 3090 Ti,
+# NVIDIA driver 580.159.03). This is NOT the same env as the GS-refinement
+# stage (that one is Python 3.10 / torch cu124, see requirements-gs-refinement-ubuntu.txt).
+#
+# NOTE: these versions are pinned tighter than pyproject.toml's optional-dependency
+# ranges (e.g. diffusers/transformers here are older than the ">=" floor in
+# pyproject.toml's [aerofix]/[gpu] extras). That's deliberate — this is the exact
+# combination that was verified to work; installing pyproject.toml's extras fresh
+# could resolve newer diffusers/transformers/peft and reintroduce version-conflict
+# bugs (see lab_tools/README.md, DreamSim/peft LoraConfig issue).
+#
+# Setup:
+#   conda create -n anchor-prodig python=3.11 -y
+#   conda activate anchor-prodig
+#   cd /path/to/lab-repo
+#   python -m pip install --upgrade pip
+#   python -m pip install -r requirements-aerofix-validation.txt
+#   python -m pip install -e .
+#
+# pytorch3d is NOT pip-installable from this file (needs --no-build-isolation and
+# a matching CUDA toolkit). Install it separately, after the above:
+#   CUDA_HOME=/path/to/cuda-13.0 python -m pip install --no-build-isolation \
+#     "git+https://github.com/facebookresearch/pytorch3d.git@main"
+#   (must be @main, not @stable -- stable fails to build on CUDA 13+)
+#   Verify: python -c "import torch; print(torch.version.cuda)" must match your
+#   CUDA_HOME toolkit version exactly, or the build will fail/mismatch at import time.
+
+# --- core ---
+numpy==1.26.4
+torch==2.13.0
+torchvision==0.28.0
+Pillow==12.3.0
+PyYAML==6.0.3
+pydantic==2.13.4
+scipy==1.17.1
+tqdm==4.68.4
+imageio==2.37.3
+plyfile==1.1.3
+typing-extensions==4.16.0
+trimesh==4.12.2
+
+# --- data / gs backend ---
+pycolmap==4.1.0
+gsplat==1.5.3
+
+# --- diffusion / aerofix ---
+huggingface-hub==0.25.1
+diffusers==0.25.1
+transformers==4.38.0
+accelerate==0.33.0
+peft==0.9.0
+safetensors==0.8.0
+lpips==0.1.4
+torchmetrics==1.9.0
+scikit-image==0.26.0
+dreamsim==0.2.1
+easydict==1.13
+einops==0.8.2
+tensorboard==2.21.0
+wandb==0.28.0
+
+# --- attention/speed (Linux only) ---
+xformers==0.0.35
+
+# --- dev/test ---
+pytest==9.1.1

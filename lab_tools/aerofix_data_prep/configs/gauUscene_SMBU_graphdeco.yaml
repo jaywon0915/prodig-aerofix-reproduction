@@ -1,0 +1,127 @@
+# Method-level reconstruction of the aeroFix data recipe using original GraphDECO 3DGS
+# for the scene GS that produces noisy held-out renders. Replace all dataset paths.
+output_root: /path/to/gauUscene/SMBU/aerofix_outputs/graphdeco_paper
+seed: 42
+
+scenes:
+  - scene_id: SMBU
+    dataset: custom
+    manifest: /path/to/gauUscene/SMBU/scene.json
+    gs_config: ../../configs/aerofix_pair_gs.yaml
+    enabled: true
+    paper_split: train
+    query_sources: [aerial]
+    reference_sources: [aerial]
+    training_sources: [aerial]
+    split_metadata_key: null
+    holdout_fraction: 0.2
+    repeat_splits: 1
+    checkpoint_steps: [7000]
+    strict_geometry_holdout: false
+
+pairs:
+  resolution: 512
+  gs_training_resolution: null
+  prompt: remove degradation
+  reference_strategy: altitude_covisibility
+  altitude:
+    enabled: true
+    up_axis: [0, 0, 1]
+    min_gap_ratio: 0.05
+    ideal_gap_ratio: [0.15, 0.45]
+    max_gap_ratio: 0.70
+    same_altitude_tolerance: 0.05
+  covisibility:
+    source: colmap_tracks
+    min_shared_colmap_points: 50
+    min_track_covisibility: 0.10
+    fallback_to_proxy: false
+  parallax:
+    enabled: true
+    min_reference_distance: 3.0
+    min_altitude_gap_ratio: 0.08
+    min_frame_gap: 5
+  fallback_order: [higher_to_lower, lower_to_higher, same_altitude, nearest_pose]
+  max_references_per_query: 4
+  min_quality_score: 0.35
+  max_intrinsic_relative_error: 0.05
+  min_reference_heading_dot: -1.0
+  png_compression: 3
+  quality_filter_enabled: false
+  min_alpha_coverage: 0.05
+  min_mean_absolute_error: 0.0
+  max_mean_absolute_error: 1.0
+
+gs_factory:
+  backend: graphdeco
+  graphdeco_source_dir: /path/to/lab-repo/third_party/gaussian-splatting
+  graphdeco_python: /path/to/gaussian_splatting_env/bin/python
+  graphdeco_dry_run: false
+  graphdeco_skip_training_if_exists: true
+  health_check_enabled: true
+  health_failure_policy: error
+
+split:
+  test_pairs: 1000
+  seed: 42
+  split_unit: scene
+  explicit_test_scenes: []
+  target_train_pairs: 35000
+  max_train_pairs: 35000
+  max_test_pairs: 1000
+  strict_target_counts: false
+  sampling_strategy: stratified_soft_quota
+  candidate_overgenerate_factor: 1.5
+  candidate_index: candidates.jsonl
+  show_progress: true
+  max_pairs_per_query: 2
+  rank_targets: {rank0: 0.65, rank1: 0.20, rank2_plus: 0.15}
+  direction_targets: {higher_to_lower: 0.45, lower_to_higher: 0.35, same_altitude: 0.15, nearest_pose: 0.05}
+  max_same_altitude_fraction: 0.20
+
+training:
+  prodig_source_dir: ../../third_party/ProDiG/aeroFix/src
+  base_checkpoint: nvidia/difix_ref
+  output_dir: /path/to/gauUscene/SMBU/aerofix_outputs/graphdeco_paper_train
+  max_train_steps: 10000
+  learning_rate: 2.0e-5
+  train_batch_size: 1
+  gradient_accumulation_steps: 1
+  seed: 42
+  dataloader_workers: 8
+  resolution: 512
+  mixed_precision: bf16
+  checkpointing_steps: 1000
+  eval_freq: 1000
+  viz_freq: 1000
+  num_samples_eval: 100
+  report_to: tensorboard
+  tracker_project_name: aerofix
+  tracker_run_name: paper_reconstruction_graphdeco
+  lambda_lpips: 1.0
+  lambda_l2: 1.0
+  lambda_gram: 1.0
+  gram_loss_warmup_steps: 6000
+  timestep: 199
+  mv_unet_v: v4
+  lora_rank_unet: 4
+  lora_rank_vae: 4
+  gradient_checkpointing: true
+  allow_tf32: true
+  xformers: true
+  set_grads_to_none: true
+  patch_upstream_checkpoint_condition: true
+
+evaluation:
+  backend: difix_ref
+  checkpoint: nvidia/difix_ref
+  checkpoint_format: diffusers
+  difix_source_dir: ../../third_party/Difix3D/src
+  output_dir: /path/to/gauUscene/SMBU/aerofix_outputs/graphdeco_paper_eval
+  max_samples: 1000
+  device: cuda
+  dtype: bfloat16
+  compute_lpips: true
+  compute_dreamsim: true
+  save_images: true
+  allow_remote_code: true

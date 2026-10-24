@@ -1,0 +1,114 @@
+mode: baseline
+device:
+  device: cuda
+  seed: 42
+  amp: true
+  amp_dtype: bfloat16
+  compile_modules: false
+  data_workers: 4
+  pin_memory: true
+data:
+  manifest: /path/to/park/scene.json
+  output_dir: /path/to/outputs/park_forward_aerofix_replication_v2
+  image_resize:
+  - 512
+  - 512
+  cache_images: true
+  cache_capacity: 128
+  up_axis: z
+renderer:
+  backend: gsplat
+  packed: true
+  sparse_grad: false
+  antialiased: false
+  render_depth: true
+initial_gs:
+  enabled: true
+  backend: graphdeco
+  run_if_missing: true
+  graphdeco_source_dir: /path/to/lab-repo/third_party/gaussian-splatting
+  python_executable: /path/to/gaussian_splatting_env/bin/python
+  dataset_dir: /path/to/park
+  output_dir: /path/to/outputs/park_forward_aerofix_replication_v2/initial_gs
+  output_ply: /path/to/outputs/park_forward_aerofix_replication_v2/initial_gs/point_cloud/iteration_7000/point_cloud.ply
+  iterations: 7000
+gs:
+  initialization_backend: explicit_ply
+  initial_ply: /path/to/park/point_cloud.ply
+  imported_progressive_policy: residual_geometry
+  residual_seed_count: 50000
+  sh_degree: 3
+  initial_steps: 0
+  stage_steps: 2000
+  correction_steps: 1000
+  refresh_steps: 500
+  batch_size: 1
+  appearance_enabled: false
+  freeze_topology_after_initial: false
+  distance_adaptive:
+    enabled: true
+    feature_dim: 8
+    hidden_dim: 32
+    mode: bounded_residual
+  densification:
+    enabled: true
+    refine_start_iter: 500
+    refine_stop_iter: 15000
+    refine_every: 100
+    reset_every: 3000
+    source_aware: true
+    max_gaussians: 8500000
+    budget_margin: 250000
+    on_budget_exceeded: warn_stop
+diffusion:
+  backend: aerofix
+  checkpoint: /path/to/checkpoints/aerofix_checkpoints/model_10495.pkl
+  checkpoint_format: prodig_pkl
+  aerofix_allow_unsafe_pickle: false
+  official_source_dir: /path/to/lab-repo/third_party/ProDiG/aeroFix/src
+  cache_dir: /path/to/outputs/park_forward_aerofix_replication_v2/cache/diffusion
+  prompt: remove degradation
+  timestep: 199
+  inference_steps: 1
+  guidance_scale: 0.0
+  dtype: bfloat16
+  confidence_scale: 1.0
+progressive:
+  altitude_scales:
+  - 0.9
+  - 0.7
+  - 0.5
+  - 0.3
+  - 0.1
+  strategy: stochastic_scaled_forward
+  pseudo_base_weight: 0.35
+  quality_keep_threshold: 0.35
+  quality_drop_threshold: 0.1
+  tangent_forward_shift: true
+  terrain_relative_clearance: false
+  minimum_clearance_m: 1.0
+  terrain_neighbors: 32
+  spatial_view_sampling: true
+  adaptive_covisibility_subdivision: true
+  minimum_adjacent_covisibility: 0.2
+  covisibility_refinement_rounds: 2
+  visibility_sample_count: 12000
+  reference_source: nearest_previous
+pcd_prior:
+  enabled: true
+  point_cloud: /path/to/park/sparse/0/points3D.ply
+  surface_weight: 1.0
+  depth_weight: 0.5
+  normal_weight: 0.1
+replay:
+  enabled: true
+  stale_refresh_enabled: false
+  root: /path/to/outputs/park_forward_aerofix_replication_v2/replay
+pose_refine:
+  enabled: false
+graph:
+  enabled: true
+  root: /path/to/outputs/park_forward_aerofix_replication_v2/graph
+  flush_every: 1000000
+optimization:
+  backward_cycles: 1
